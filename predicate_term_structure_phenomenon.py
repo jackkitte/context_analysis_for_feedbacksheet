@@ -51,24 +51,38 @@ for doc in result["hits"]["hits"][:100]:
                     predicate = ''.join(mrph.midasi for mrph in tag.mrph_list())
                     if predicate == "." or regex.match("[!-/:-@[-`{-~]+", predicate):
                         continue
-                    term_type = {"ガ":"", "ト":"", "ヲ":"", "デ":"", "二":""}
+                    term_type = {"ガ":"", "ガ2":"", "ト":"", "ヲ":"", "デ":"", "ニ":""}
                     for case, args in tag.pas.arguments.items(): # case: str, args: list of Argument class
                         for arg in args: # arg: Argument class
+                            children_term = ""
+                            for children in result.tag_list()[arg.tid].children:
+                                children_term = children_term + children.midasi
                             if arg.midasi == ".":
                                 continue
                             if regex.match("[ァ-ン]+", case):
-                                join_term = ""
-                                children_term = ""
-                                for children in result.tag_list()[arg.tid].children:
-                                    children_term = children_term + children.midasi
-                                join_term = join_term +  children_term + arg.midasi + case
+                                join_term = children_term + arg.midasi + case
                                 term_type[case] = join_term
+                            elif case == "外の関係":
+                                out_term = predicate + result.tag_list()[arg.tid].midasi
+                                term_list = dependency_dic.get(predicate, [])
+                                term_list.append(out_term)
+                                dependency_dic[predicate] = term_list
                             else:
-                                pass
-                    join_term_type = term_type["ガ"] + term_type["ト"] + term_type["ヲ"] + term_type["デ"] + term_type["二"]
-                    term_list = dependency_dic.get(predicate, [])
-                    term_list.append(join_term_type)
-                    dependency_dic[predicate] = term_list
+                                modification_term = children_term + result.tag_list()[arg.tid].midasi
+                                term_list = dependency_dic.get(predicate, [])
+                                term_list.append(modification_term)
+                                dependency_dic[predicate] = term_list
+                    join_term_type = term_type["ガ"] + term_type["ヲ"] + term_type["デ"] + term_type["ニ"] + term_type["ト"]
+                    if join_term_type != "":
+                        term_list = dependency_dic.get(predicate, [])
+                        term_list.append(join_term_type)
+                        dependency_dic[predicate] = term_list
+                        if term_type.get("ガ2", False):
+                            join_term_type = term_type["ガ2"] + term_type["ヲ"] + term_type["デ"] + term_type["ニ"] + term_type["ト"]
+                            term_list = dependency_dic.get(predicate, [])
+                            term_list.append(join_term_type)
+                            dependency_dic[predicate] = term_list
+
         except:
             pass
             #print("失敗")
@@ -76,18 +90,3 @@ for doc in result["hits"]["hits"][:100]:
 
 with open("predicate_term_structure_phenomenon.json", "w") as f:
     json.dump(predicate_term_structure_dic, f)
-#pprint.pprint(dependency_dic)
-#                            elif case == "外の関係":
-#                                for children in result.tag_list()[arg.tid].children[:-1]:
-#                                    out_term = arg.midasi
-#                                    out_term = children.midasi + predicate + out_term
-#                                    term_list = dependency_dic.get(predicate, [])
-#                                    term_list.append(out_term)
-#                                    dependency_dic[predicate] = term_list
-#                            else:
-#                                for children in result.tag_list()[arg.tid].children:
-#                                    modification_term = arg.midasi
-#                                    modification_term = children.midasi + modification_term
-#                                    term_list = dependency_dic.get(predicate, [])
-#                                    term_list.append(modification_term)
-#                                    dependency_dic[predicate] = term_list
